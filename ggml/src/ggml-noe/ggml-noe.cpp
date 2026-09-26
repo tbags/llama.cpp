@@ -60,7 +60,7 @@ struct noe_graph_instance {
 struct ggml_backend_noe_context {
     ggml_backend_noe_device_context * dev_ctx = nullptr;
     std::unordered_map<std::string, noe_graph_instance> graph_cache;
-    std::string model_dir = "/home/shashank/project/npu/models";
+    std::string model_dir;
 };
 
 // --------------------------------------------------------------------------
@@ -293,6 +293,27 @@ static ggml_backend_t ggml_backend_noe_device_init_backend(ggml_backend_dev_t de
     auto * ctx = new ggml_backend_noe_context();
     ctx->dev_ctx = (ggml_backend_noe_device_context *) dev->context;
 
+    if (params && params[0]) {
+        if (strncmp(params, "model_dir=", 10) == 0) {
+            ctx->model_dir = params + 10;
+        } else if (strncmp(params, "path=", 5) == 0) {
+            ctx->model_dir = params + 5;
+        } else {
+            ctx->model_dir = params;
+        }
+    }
+
+    if (ctx->model_dir.empty()) {
+        const char * env_dir = getenv("GGML_NOE_MODEL_DIR");
+        if (env_dir && env_dir[0]) {
+            ctx->model_dir = env_dir;
+        } else if (access("./models/dynamic_matmul.cix", R_OK) == 0) {
+            ctx->model_dir = "./models";
+        } else if (access("/usr/share/cix/models/dynamic_matmul.cix", R_OK) == 0) {
+            ctx->model_dir = "/usr/share/cix/models";
+        }
+    }
+
     auto * backend = new ggml_backend {
         /* .guid      = */ ggml_backend_noe_guid(),
         /* .iface     = */ noe_backend_interface,
@@ -301,7 +322,6 @@ static ggml_backend_t ggml_backend_noe_device_init_backend(ggml_backend_dev_t de
     };
 
     return backend;
-    GGML_UNUSED(params);
 }
 
 static ggml_backend_buffer_type_t ggml_backend_noe_device_get_buffer_type(ggml_backend_dev_t dev) {
