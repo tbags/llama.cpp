@@ -2747,6 +2747,14 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         }
     ));
     add_opt(common_arg(
+        {"--noe-model-dir"}, "PATH",
+        "path to directory containing precompiled Zhouyi NPU .cix kernels (default: GGML_NOE_MODEL_DIR or ./models)",
+        [](common_params & params, const std::string & value) {
+            setenv("GGML_NOE_MODEL_DIR", value.c_str(), 1);
+            GGML_UNUSED(params);
+        }
+    ).set_env("GGML_NOE_MODEL_DIR"));
+    add_opt(common_arg(
         {"-ot", "--override-tensor"}, "<tensor name pattern>=<buffer type>,...",
         "override tensor buffer type", [](common_params & params, const std::string & value) {
             parse_tensor_buffer_overrides(value, params.tensor_buft_overrides);
